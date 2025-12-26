@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Models;
@@ -23,6 +24,10 @@ public class TransactionsController : ControllerBase
         {
             return NotFound("Wallet not found");
         }
+        if (wallet.Balance < (request.Amount ?? 0))
+        {
+            return BadRequest("Insufficient funds in wallet");
+        }
 
         var category = await _context.Categories.FindAsync(request.CategoryId);
         if (category == null)
@@ -44,5 +49,16 @@ public class TransactionsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(transaction);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var transactions = await _context.Transactions
+            .AsNoTracking()
+            .Include(t => t.Category)
+            .ToListAsync();
+
+        return Ok(transactions);
     }
 }
