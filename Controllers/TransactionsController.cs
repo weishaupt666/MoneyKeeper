@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Models;
+using MoneyKeeper.Enums;
 
 namespace MoneyKeeper.Controllers;
 
@@ -24,10 +25,6 @@ public class TransactionsController : ControllerBase
         {
             return NotFound("Wallet not found");
         }
-        if (wallet.Balance < (request.Amount ?? 0))
-        {
-            return BadRequest("Insufficient funds in wallet");
-        }
 
         var category = await _context.Categories.FindAsync(request.CategoryId);
         if (category == null)
@@ -35,13 +32,28 @@ public class TransactionsController : ControllerBase
             return NotFound("Category not found");
         }
 
-        wallet.Balance -= request.Amount ?? 0;
+        if (request.Type == OperationType.Income)
+        {
+            wallet.Balance += request.Amount!.Value;
+        }
+        else
+        {
+            if (wallet.Balance < (request.Amount ?? 0))
+            {
+                return BadRequest("Insufficient funds in wallet");
+            }
+
+            wallet.Balance -= request.Amount ?? 0;
+        }
+
 
         var transaction = new Transaction
         {
             Amount = request.Amount ?? 0,
+            Type = request.Type!.Value,
             WalletId = wallet.Id,
             Category = category,
+            Description = request.Description ?? string.Empty,
             Date = request.Date == DateTime.MinValue ? DateTime.UtcNow : request.Date
         };
 
