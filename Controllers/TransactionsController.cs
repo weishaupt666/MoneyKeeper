@@ -66,6 +66,7 @@ public class TransactionsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
+        throw new Exception("Это тест глобального перехватчика!");
         var transactions = await _context.Transactions
             .AsNoTracking()
             .Include(t => t.Category)
