@@ -9,6 +9,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

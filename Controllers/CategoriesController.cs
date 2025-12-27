@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Models;
+using MoneyKeeper.Services;
 
 namespace MoneyKeeper.Controllers;
 
@@ -10,24 +11,24 @@ namespace MoneyKeeper.Controllers;
 [Route("api/[controller]")]
 public class CategoriesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(ApplicationDbContext context)
+    public CategoriesController(ICategoryService categoryService)
     {
-        _context = context;
+        _categoryService = categoryService;
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
-        var category = new Category
-        {
-            Name = request.Name
-        };
-
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
-
+        var category = await _categoryService.Create(request);
         return Ok(category);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var categories = await _categoryService.GetAll();
+        return Ok(categories);
     }
 }

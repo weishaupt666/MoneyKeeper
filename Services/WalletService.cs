@@ -43,7 +43,9 @@ public class WalletService : IWalletService
 
     public async Task<List<Wallet>> GetAll()
     {
-        var wallets = await _context.Wallets.ToListAsync();
+        var wallets = await _context.Wallets
+            .AsNoTracking()
+            .ToListAsync();
         return wallets;
     }
 }
