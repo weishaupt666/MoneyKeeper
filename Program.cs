@@ -1,11 +1,13 @@
-using MoneyKeeper.Data;
 using Microsoft.EntityFrameworkCore;
+using MoneyKeeper.Data;
+using MoneyKeeper.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

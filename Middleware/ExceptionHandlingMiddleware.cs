@@ -30,12 +30,30 @@ public class ExceptionHandlingMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+        var statusCode = (int)HttpStatusCode.InternalServerError;
+        var message = "internal Server Error";
+
+        switch (exception)
+        {
+            case KeyNotFoundException:
+                statusCode = (int)HttpStatusCode.NotFound;
+                message = exception.Message;
+                break;
+
+            case InvalidOperationException:
+            case ArgumentException:
+                statusCode = (int)HttpStatusCode.BadRequest;
+                message = exception.Message;
+                break;
+        }
+
+        context.Response.StatusCode = statusCode;
 
         var response = new
         {
-            StatusCode = context.Response.StatusCode,
-            Message = "Internal Server Error from the custom middleware.",
+            StatusCode = statusCode,
+            Message = message,
             Detailed = exception.Message
         };
 
