@@ -8,6 +8,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

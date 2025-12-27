@@ -1,5 +1,4 @@
 ﻿using MoneyKeeper.DTO;
-using MoneyKeeper.Enums;
 using MoneyKeeper.Models;
 
 namespace MoneyKeeper.Services;

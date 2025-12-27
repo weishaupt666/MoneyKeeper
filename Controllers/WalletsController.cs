@@ -3,6 +3,7 @@ using MoneyKeeper.Data;
 using MoneyKeeper.Models;
 using MoneyKeeper.DTO;
 using Microsoft.EntityFrameworkCore;
+using MoneyKeeper.Services;
 
 namespace MoneyKeeper.Controllers;
 
@@ -10,44 +11,31 @@ namespace MoneyKeeper.Controllers;
 [Route("api/[controller]")]
 public class WalletsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    public WalletsController(ApplicationDbContext context)
+    private readonly IWalletService _walletService;
+
+    public WalletsController(IWalletService walletService)
     {
-        _context = context;
+        _walletService = walletService;
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWalletRequest request)
     {
-        var wallet = new Wallet
-        {
-            Name = request.Name,
-            Balance = request.Balance,
-            Currency = request.Currency
-        };
-        _context.Wallets.Add(wallet);
-        await _context.SaveChangesAsync();
-
+        var wallet = await _walletService.Create(request);
         return Ok(wallet);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var wallet = await _context.Wallets.FindAsync(id);
-
-        if (wallet == null)
-        {
-            return NotFound();
-        }
-
+        var wallet = await _walletService.GetById(id);
         return Ok(wallet);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var wallets = await _context.Wallets.ToListAsync();
+        var wallets = await _walletService.GetAll();
         return Ok(wallets);
     }
 }
