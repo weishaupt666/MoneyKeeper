@@ -15,12 +15,43 @@ public class TransactionService : ITransactionService
         _context = context;
     }
 
-    public async Task<List<Transaction>> GetTransactionsAsync()
+    public async Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter)
     {
-        return await _context.Transactions
+        if (filter.FromDate.HasValue && filter.ToDate.HasValue && filter.FromDate > filter.ToDate)
+        {
+            throw new ArgumentException("Date 'From' cannot be greater than date 'To'");
+        }
+
+        var query = _context.Transactions
             .AsNoTracking()
             .Include(t => t.Category)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (filter.FromDate.HasValue)
+        {
+            query = query.Where(t => t.Date >= filter.FromDate.Value);
+        }
+
+        if (filter.ToDate.HasValue)
+        {
+            query = query.Where(t => t.Date <= filter.ToDate.Value);
+        }
+
+        if (filter.CategoryId.HasValue)
+        {
+            query = query.Where(t => t.CategoryId == filter.CategoryId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchText))
+        {
+            query = query.Where(t =>
+            t.Description != null &&
+            t.Description.ToLower().Contains(filter.SearchText.ToLower()));
+        }
+
+        query = query.OrderByDescending(t => t.Date);
+
+        return await query.ToListAsync();
     }
 
     public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request)

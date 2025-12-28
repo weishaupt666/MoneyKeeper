@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MoneyKeeper.DTO;
+using MoneyKeeper.Models;
 using MoneyKeeper.Services;
 
 namespace MoneyKeeper.Controllers;
@@ -24,9 +25,9 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] GetTransactionsFilter filter)
     {
-        var transactions = await _transactionService.GetTransactionsAsync();
+        var transactions = await _transactionService.GetTransactionsAsync(filter);
         return Ok(transactions);
     }
 }

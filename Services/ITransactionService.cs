@@ -6,5 +6,5 @@ namespace MoneyKeeper.Services;
 public interface ITransactionService
 {
     Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request);
-    Task<List<Transaction>> GetTransactionsAsync();
+    Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter);
 }
