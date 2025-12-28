@@ -179,4 +179,34 @@ public class TransactionService : ITransactionService
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task<List<CategoryStatistics>> GetExpensesByCategoryAsync(GetTransactionsFilter filter)
+    {
+        var query = _context.Transactions
+            .Include(t => t.Category)
+            .AsNoTracking()
+            .Where(t => t.Type == OperationType.Expense)
+            .AsQueryable();
+
+        if (filter.FromDate.HasValue)
+        {
+            query = query.Where(t => t.Date >= filter.FromDate.Value);
+        }
+
+        if (filter.ToDate.HasValue)
+        {
+            query = query.Where(t => t.Date <= filter.ToDate.Value);
+        }
+
+        var stats = await query
+            .GroupBy(t => t.Category.Name)
+            .Select(g => new CategoryStatistics
+            {
+                CategoryName = g.Key,
+                TotalAmount = g.Sum(t => t.Amount)
+            })
+            .ToListAsync();
+
+        return stats;
+    }
 }

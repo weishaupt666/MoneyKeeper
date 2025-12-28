@@ -44,4 +44,11 @@ public class TransactionsController : ControllerBase
         await _transactionService.UpdateTransactionAsync(id, request);
         return Ok(new { Message = "Transaction updated" });
     }
+
+    [HttpGet("stats/categories")]
+    public async Task<IActionResult> GetCategoryStats([FromQuery] GetTransactionsFilter filter)
+    {
+        var stats = await _transactionService.GetExpensesByCategoryAsync(filter);
+        return Ok(stats);
+    }
 }
