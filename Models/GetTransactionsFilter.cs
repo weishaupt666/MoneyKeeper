@@ -6,4 +6,5 @@ public class GetTransactionsFilter
     public DateTime? ToDate { get; set; }
     public int? CategoryId { get; set; }
     public string? SearchText { get; set; }
+    public int? WalletId { get; set; }
 }

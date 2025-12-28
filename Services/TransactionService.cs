@@ -209,4 +209,41 @@ public class TransactionService : ITransactionService
 
         return stats;
     }
+
+    public async Task<DashboardStatistics> GetDashboardStatisticsAsync(GetTransactionsFilter filter)
+    {
+        var query = _context.Transactions
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (filter.FromDate.HasValue)
+        {
+            query = query.Where(t => t.Date >= filter.FromDate.Value);
+        }
+
+        if (filter.ToDate.HasValue)
+        {
+            query = query.Where(t => t.Date <= filter.ToDate.Value);
+        }
+
+        if (filter.WalletId.HasValue)
+        {
+            query = query.Where(t => t.WalletId == filter.WalletId.Value);
+        }
+
+        var totalIncome = await query
+            .Where(t => t.Type == OperationType.Income)
+            .SumAsync(t => t.Amount);
+
+        var totalExpense = await query
+            .Where(t => t.Type == OperationType.Expense)
+            .SumAsync(t => t.Amount);
+
+        return new DashboardStatistics
+        {
+            TotalIncome = totalIncome,
+            TotalExpense = totalExpense,
+            Balance = totalIncome - totalExpense
+        };
+    }
 }

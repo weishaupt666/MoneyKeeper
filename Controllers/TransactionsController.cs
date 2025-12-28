@@ -51,4 +51,11 @@ public class TransactionsController : ControllerBase
         var stats = await _transactionService.GetExpensesByCategoryAsync(filter);
         return Ok(stats);
     }
+
+    [HttpGet("stats/dashboard")]
+    public async Task<IActionResult> GetDashboardStats([FromQuery] GetTransactionsFilter filter)
+    {
+        var stats = await _transactionService.GetDashboardStatisticsAsync(filter);
+        return Ok(stats);
+    }
 }

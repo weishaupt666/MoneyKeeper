@@ -10,4 +10,5 @@ public interface ITransactionService
     Task DeleteTransactionAsync(int id);
     Task UpdateTransactionAsync(int id, UpdateTransactionRequest request);
     Task<List<CategoryStatistics>> GetExpensesByCategoryAsync(GetTransactionsFilter filter);
+    Task<DashboardStatistics> GetDashboardStatisticsAsync(GetTransactionsFilter filter);
 }
