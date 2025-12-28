@@ -99,4 +99,84 @@ public class TransactionService : ITransactionService
 
         return transaction;
     }
+
+    public async Task DeleteTransactionAsync(int id)
+    {
+        var transaction = await _context.Transactions
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (transaction == null)
+        {
+            throw new KeyNotFoundException("Transaction not found");
+        }
+
+        var wallet = transaction.Wallet;
+
+        if (wallet == null)
+        {
+            _context.Transactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        if (transaction.Type == OperationType.Income)
+        {
+            if (wallet.Balance < transaction.Amount)
+            {
+                throw new InvalidOperationException("Cannot delete income: insufficient funds to rollback");
+            }
+            wallet.Balance -= transaction.Amount;
+        }
+        else
+        {
+            wallet.Balance += transaction.Amount;
+        }
+
+        _context.Transactions.Remove(transaction);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateTransactionAsync(int id, UpdateTransactionRequest request)
+    {
+        var transaction = await _context.Transactions
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (transaction == null)
+        {
+            throw new KeyNotFoundException("Transaction not found");
+        }
+
+        var wallet = transaction.Wallet;
+
+        if (transaction.Type == OperationType.Income)
+        {
+            wallet.Balance -= transaction.Amount;
+        }
+        else
+        {
+            wallet.Balance += transaction.Amount;
+        }
+
+        transaction.Amount = request.Amount;
+        transaction.Description = request.Description;
+        transaction.Date = request.Date;
+        transaction.CategoryId = request.CategoryId;
+
+        if (transaction.Type == OperationType.Income)
+        {
+            wallet.Balance += transaction.Amount;
+        }
+        else
+        {
+            if (wallet.Balance < transaction.Amount)
+            {
+                throw new InvalidOperationException("Insufficient funds for update amount");
+            }
+            wallet.Balance -= transaction.Amount;
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }

@@ -30,4 +30,18 @@ public class TransactionsController : ControllerBase
         var transactions = await _transactionService.GetTransactionsAsync(filter);
         return Ok(transactions);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _transactionService.DeleteTransactionAsync(id);
+        return NoContent();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateTransactionRequest request)
+    {
+        await _transactionService.UpdateTransactionAsync(id, request);
+        return Ok(new { Message = "Transaction updated" });
+    }
 }
