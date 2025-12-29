@@ -14,4 +14,5 @@ public class ApplicationDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; } = null!;
     public DbSet<Wallet> Wallets { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
+    public DbSet<User> Users { get; set; }
 }
