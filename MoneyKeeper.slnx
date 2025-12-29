@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MoneyKeeper.Tests/MoneyKeeper.Tests.csproj" />
+  <Project Path="MoneyKeeper/MoneyKeeper.csproj" />
+</Solution>
