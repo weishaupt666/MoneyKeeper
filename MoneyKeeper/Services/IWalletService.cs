@@ -6,7 +6,6 @@ namespace MoneyKeeper.Services;
 
 public interface IWalletService
 {
-    Task<Wallet> Create(CreateWalletRequest request);
-    Task<Wallet> GetById(int id);
-    Task<List<Wallet>> GetAll();
+    Task<Wallet> CreateWalletAsync(CreateWalletRequest request, int userId);
+    Task<List<Wallet>> GetWalletsAsync(int userId);
 }

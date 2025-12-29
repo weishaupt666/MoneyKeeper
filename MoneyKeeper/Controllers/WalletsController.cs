@@ -5,6 +5,7 @@ using MoneyKeeper.DTO;
 using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace MoneyKeeper.Controllers;
 
@@ -21,23 +22,30 @@ public class WalletsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateWalletRequest request)
+    public async Task<IActionResult> CreateWallet([FromBody] CreateWalletRequest request)
     {
-        var wallet = await _walletService.Create(request);
-        return Ok(wallet);
-    }
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var wallet = await _walletService.GetById(id);
+        if (string.IsNullOrEmpty(userIdString))
+        {
+            return Unauthorized();
+        }
+
+        var userId = int.Parse(userIdString);
+
+        var wallet = await _walletService.CreateWalletAsync(request, userId);
+
         return Ok(wallet);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetWallets()
     {
-        var wallets = await _walletService.GetAll();
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = int.Parse(userIdString!);
+
+        var wallets = await _walletService.GetWalletsAsync(userId);
+
         return Ok(wallets);
     }
 }

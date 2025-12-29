@@ -3,6 +3,7 @@ using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace MoneyKeeper.Services;
 
@@ -15,13 +16,14 @@ public class WalletService : IWalletService
         _context = context;
     }
 
-    public async Task<Wallet> Create(CreateWalletRequest request)
+    public async Task<Wallet> CreateWalletAsync(CreateWalletRequest request, int userId)
     {
         var wallet = new Wallet
         {
             Name = request.Name,
             Balance = request.Balance,
-            Currency = request.Currency
+            Currency = request.Currency,
+            UserId = userId
         };
         _context.Wallets.Add(wallet);
         await _context.SaveChangesAsync();
@@ -29,23 +31,13 @@ public class WalletService : IWalletService
         return wallet;
     }
 
-    public async Task<Wallet> GetById(int id)
-    {
-        var wallet = await _context.Wallets.FindAsync(id);
-
-        if (wallet == null)
-        {
-            throw new KeyNotFoundException("Wallet not found");
-        }
-
-        return wallet;
-    }
-
-    public async Task<List<Wallet>> GetAll()
+    public async Task<List<Wallet>> GetWalletsAsync(int userId)
     {
         var wallets = await _context.Wallets
             .AsNoTracking()
+            .Where(w => w.UserId == userId)
             .ToListAsync();
+
         return wallets;
     }
 }

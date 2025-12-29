@@ -12,8 +12,8 @@ using MoneyKeeper.Data;
 namespace MoneyKeeper.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251226132321_AddDescriptionField")]
-    partial class AddDescriptionField
+    [Migration("20251229164223_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -77,6 +77,27 @@ namespace MoneyKeeper.Migrations
                     b.ToTable("Transactions");
                 });
 
+            modelBuilder.Entity("MoneyKeeper.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("MoneyKeeper.Models.Wallet", b =>
                 {
                     b.Property<int>("Id")
@@ -96,7 +117,12 @@ namespace MoneyKeeper.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Wallets");
                 });
@@ -118,6 +144,17 @@ namespace MoneyKeeper.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("MoneyKeeper.Models.Wallet", b =>
+                {
+                    b.HasOne("MoneyKeeper.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

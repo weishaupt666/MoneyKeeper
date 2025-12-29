@@ -114,7 +114,12 @@ namespace MoneyKeeper.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Wallets");
                 });
@@ -136,6 +141,17 @@ namespace MoneyKeeper.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("MoneyKeeper.Models.Wallet", b =>
+                {
+                    b.HasOne("MoneyKeeper.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }
