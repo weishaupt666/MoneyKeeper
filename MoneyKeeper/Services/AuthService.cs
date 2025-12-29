@@ -1,4 +1,8 @@
 ﻿using BCrypt.Net;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
@@ -34,7 +38,7 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<User> LoginAsync(UserLoginRequest request)
+    public async Task<string> LoginAsync(UserLoginRequest request)
     {
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == request.Username);
@@ -44,11 +48,26 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("User not found");
         }
 
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        var claims = new List<Claim>
         {
-            throw new UnauthorizedAccessException("Wrong password");
-        }
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username)
+        };
 
-        return user;
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+
+        var keyString = configuration["JwtSettings:Key"];
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

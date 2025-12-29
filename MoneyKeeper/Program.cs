@@ -1,8 +1,25 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using MoneyKeeper.Data;
 using MoneyKeeper.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var key = builder.Configuration["JwtSettings:Key"];
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
@@ -21,6 +38,7 @@ var app = builder.Build();
 app.UseMiddleware<MoneyKeeper.Middleware.ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.MapControllers();
+app.UseAuthentication();
 app.UseAuthorization();
 
 await app.RunAsync();

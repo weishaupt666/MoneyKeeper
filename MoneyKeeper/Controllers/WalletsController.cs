@@ -4,9 +4,11 @@ using MoneyKeeper.Models;
 using MoneyKeeper.DTO;
 using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MoneyKeeper.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class WalletsController : ControllerBase
