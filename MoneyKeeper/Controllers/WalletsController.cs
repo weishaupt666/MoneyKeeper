@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Services;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using MoneyKeeper.Extensions;
 
 namespace MoneyKeeper.Controllers;
 
@@ -24,14 +25,7 @@ public class WalletsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateWallet([FromBody] CreateWalletRequest request)
     {
-        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrEmpty(userIdString))
-        {
-            return Unauthorized();
-        }
-
-        var userId = int.Parse(userIdString);
+        var userId = User.GetUserId();
 
         var wallet = await _walletService.CreateWalletAsync(request, userId);
 
@@ -41,8 +35,7 @@ public class WalletsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetWallets()
     {
-        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var userId = int.Parse(userIdString!);
+        var userId = User.GetUserId();
 
         var wallets = await _walletService.GetWalletsAsync(userId);
 

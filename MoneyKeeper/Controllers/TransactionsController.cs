@@ -2,9 +2,13 @@
 using MoneyKeeper.DTO;
 using MoneyKeeper.Models;
 using MoneyKeeper.Services;
+using MoneyKeeper.Extensions;
+using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MoneyKeeper.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class TransactionsController : ControllerBase
@@ -20,42 +24,48 @@ public class TransactionsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionRequest request)
     {
-        var transaction = await _transactionService.CreateTransactionAsync(request);
+        var userId = User.GetUserId();
+        var transaction = await _transactionService.CreateTransactionAsync(request, userId);
         return Ok(transaction);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] GetTransactionsFilter filter)
     {
-        var transactions = await _transactionService.GetTransactionsAsync(filter);
+        var userId = User.GetUserId();
+        var transactions = await _transactionService.GetTransactionsAsync(filter, userId);
         return Ok(transactions);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        await _transactionService.DeleteTransactionAsync(id);
+        var userId = User.GetUserId();
+        await _transactionService.DeleteTransactionAsync(id, userId);
         return NoContent();
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTransactionRequest request)
     {
-        await _transactionService.UpdateTransactionAsync(id, request);
+        var userId = User.GetUserId();
+        await _transactionService.UpdateTransactionAsync(id, request, userId);
         return Ok(new { Message = "Transaction updated" });
     }
 
     [HttpGet("stats/categories")]
     public async Task<IActionResult> GetCategoryStats([FromQuery] GetTransactionsFilter filter)
     {
-        var stats = await _transactionService.GetExpensesByCategoryAsync(filter);
+        var userId = User.GetUserId();
+        var stats = await _transactionService.GetExpensesByCategoryAsync(filter, userId);
         return Ok(stats);
     }
 
     [HttpGet("stats/dashboard")]
     public async Task<IActionResult> GetDashboardStats([FromQuery] GetTransactionsFilter filter)
     {
-        var stats = await _transactionService.GetDashboardStatisticsAsync(filter);
+        var userId = User.GetUserId();
+        var stats = await _transactionService.GetDashboardStatisticsAsync(filter, userId);
         return Ok(stats);
     }
 }

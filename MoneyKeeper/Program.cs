@@ -33,8 +33,6 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
 app.UseMiddleware<MoneyKeeper.Middleware.ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.MapControllers();

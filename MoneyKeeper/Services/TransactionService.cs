@@ -15,7 +15,7 @@ public class TransactionService : ITransactionService
         _context = context;
     }
 
-    public async Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter)
+    public async Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter, int userId)
     {
         if (filter.FromDate.HasValue && filter.ToDate.HasValue && filter.FromDate > filter.ToDate)
         {
@@ -25,6 +25,8 @@ public class TransactionService : ITransactionService
         var query = _context.Transactions
             .AsNoTracking()
             .Include(t => t.Category)
+            .Include(t => t.Wallet)
+            .Where(t => t.Wallet!.UserId == userId)
             .AsQueryable();
 
         if (filter.FromDate.HasValue)
@@ -54,12 +56,17 @@ public class TransactionService : ITransactionService
         return await query.ToListAsync();
     }
 
-    public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request)
+    public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request, int userId)
     {
         var wallet = await _context.Wallets.FindAsync(request.WalletId);
         if (wallet == null)
         {
             throw new KeyNotFoundException("Wallet not found");
+        }
+
+        if (wallet.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("You do not own this wallet");
         }
 
         var category = await _context.Categories.FindAsync(request.CategoryId);
@@ -100,10 +107,12 @@ public class TransactionService : ITransactionService
         return transaction;
     }
 
-    public async Task DeleteTransactionAsync(int id)
+    public async Task DeleteTransactionAsync(int id, int userId)
     {
+
         var transaction = await _context.Transactions
                 .Include(t => t.Wallet)
+                .Where(w => w.Wallet!.UserId == userId)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
         if (transaction == null)
@@ -113,16 +122,9 @@ public class TransactionService : ITransactionService
 
         var wallet = transaction.Wallet;
 
-        if (wallet == null)
-        {
-            _context.Transactions.Remove(transaction);
-            await _context.SaveChangesAsync();
-            return;
-        }
-
         if (transaction.Type == OperationType.Income)
         {
-            if (wallet.Balance < transaction.Amount)
+            if (wallet!.Balance < transaction.Amount)
             {
                 throw new InvalidOperationException("Cannot delete income: insufficient funds to rollback");
             }
@@ -130,17 +132,18 @@ public class TransactionService : ITransactionService
         }
         else
         {
-            wallet.Balance += transaction.Amount;
+            wallet!.Balance += transaction.Amount;
         }
 
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateTransactionAsync(int id, UpdateTransactionRequest request)
+    public async Task UpdateTransactionAsync(int id, UpdateTransactionRequest request, int userId)
     {
         var transaction = await _context.Transactions
                 .Include(t => t.Wallet)
+                .Where(t => t.Wallet!.UserId == userId)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
         if (transaction == null)
@@ -152,11 +155,11 @@ public class TransactionService : ITransactionService
 
         if (transaction.Type == OperationType.Income)
         {
-            wallet.Balance -= transaction.Amount;
+            wallet!.Balance -= transaction.Amount;
         }
         else
         {
-            wallet.Balance += transaction.Amount;
+            wallet!.Balance += transaction.Amount;
         }
 
         transaction.Amount = request.Amount;
@@ -180,10 +183,12 @@ public class TransactionService : ITransactionService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<List<CategoryStatistics>> GetExpensesByCategoryAsync(GetTransactionsFilter filter)
+    public async Task<List<CategoryStatistics>> GetExpensesByCategoryAsync(GetTransactionsFilter filter, int userId)
     {
         var query = _context.Transactions
             .Include(t => t.Category)
+            .Include(t => t.Wallet)
+            .Where(t => t.Wallet!.UserId == userId)
             .AsNoTracking()
             .Where(t => t.Type == OperationType.Expense)
             .AsQueryable();
@@ -199,7 +204,7 @@ public class TransactionService : ITransactionService
         }
 
         var stats = await query
-            .GroupBy(t => t.Category.Name)
+            .GroupBy(t => t.Category!.Name)
             .Select(g => new CategoryStatistics
             {
                 CategoryName = g.Key,
@@ -210,9 +215,11 @@ public class TransactionService : ITransactionService
         return stats;
     }
 
-    public async Task<DashboardStatistics> GetDashboardStatisticsAsync(GetTransactionsFilter filter)
+    public async Task<DashboardStatistics> GetDashboardStatisticsAsync(GetTransactionsFilter filter, int userId)
     {
         var query = _context.Transactions
+            .Include(t => t.Wallet)
+            .Where(t => t.Wallet!.UserId == userId)
             .AsNoTracking()
             .AsQueryable();
 
