@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Routing.Constraints;
+using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Enums;
+using MoneyKeeper.Integrations.Nbp.Interfaces;
 using MoneyKeeper.Models;
 
 namespace MoneyKeeper.Services;
@@ -9,10 +11,12 @@ namespace MoneyKeeper.Services;
 public class TransactionService : ITransactionService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICurrencyService _currencyService;
 
-    public TransactionService(ApplicationDbContext context)
+    public TransactionService(ApplicationDbContext context, ICurrencyService  currencyService)
     {
         _context = context;
+        _currencyService = currencyService;
     }
 
     public async Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter, int userId)
@@ -76,6 +80,13 @@ public class TransactionService : ITransactionService
         }
 
         decimal amount = request.Amount!.Value;
+
+        if (request.CurrencyCode.ToUpper() != "PLN")
+        {
+            decimal rate = await _currencyService.GetExchangeRateAsync(request.CurrencyCode);
+            amount *= rate;
+            request.Description += $"(Converted from {request.Amount} {request.CurrencyCode} at rate {rate})";
+        }
         OperationType type = request.Type!.Value;
 
         if (type == OperationType.Income)
@@ -162,23 +173,36 @@ public class TransactionService : ITransactionService
             wallet!.Balance += transaction.Amount;
         }
 
-        transaction.Amount = request.Amount;
-        transaction.Description = request.Description;
-        transaction.Date = request.Date;
-        transaction.CategoryId = request.CategoryId;
+        decimal finalAmount = request.Amount;
+        string newDescription = request.Description ?? string.Empty;
+
+        string currency = string.IsNullOrEmpty(request.CurrencyCode) ? "PLN" : request.CurrencyCode.ToUpper();
+
+        if (currency != "PLN")
+        {
+            decimal rate = await _currencyService.GetExchangeRateAsync(currency);
+            finalAmount *= rate;
+
+            newDescription += $"Updated: {request.Amount} {currency} at rate {rate})";
+        }
 
         if (transaction.Type == OperationType.Income)
         {
-            wallet.Balance += transaction.Amount;
+            wallet.Balance += finalAmount;
         }
         else
         {
-            if (wallet.Balance < transaction.Amount)
+            if (wallet.Balance < finalAmount)
             {
-                throw new InvalidOperationException("Insufficient funds for update amount");
+                throw new InvalidOperationException("Insufficient funds for update amount.");
             }
-            wallet.Balance -= transaction.Amount;
+            wallet.Balance -= finalAmount;
         }
+
+        transaction.Amount = finalAmount;
+        transaction.Description = newDescription;
+        transaction.Date = request.Date;
+        transaction.CategoryId = request.CategoryId;
 
         await _context.SaveChangesAsync();
     }

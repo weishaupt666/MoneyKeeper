@@ -5,6 +5,7 @@ using MoneyKeeper.Services;
 using MoneyKeeper.Extensions;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authorization;
+using MoneyKeeper.Integrations.Nbp.Interfaces;
 
 namespace MoneyKeeper.Controllers;
 
@@ -14,10 +15,12 @@ namespace MoneyKeeper.Controllers;
 public class TransactionsController : ControllerBase
 {
     private readonly ITransactionService _transactionService;
+    private readonly ICurrencyService _currencyService;
 
-    public TransactionsController(ITransactionService transactionService)
+    public TransactionsController(ITransactionService transactionService, ICurrencyService currencyService)
     {
         _transactionService = transactionService;
+        _currencyService = currencyService;
     }
 
 

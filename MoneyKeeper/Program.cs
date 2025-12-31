@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MoneyKeeper.Data;
 using MoneyKeeper.Services;
+using MoneyKeeper.Integrations.Nbp.Interfaces;
+using MoneyKeeper.Integrations.Nbp;
 
 var builder = WebApplication.CreateBuilder(args);
 var key = builder.Configuration["JwtSettings:Key"];
@@ -28,6 +30,7 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHttpClient<ICurrencyService, NbpCurrencyService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

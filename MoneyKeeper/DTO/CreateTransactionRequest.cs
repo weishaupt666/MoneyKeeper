@@ -11,6 +11,8 @@ public class CreateTransactionRequest
     public decimal? Amount { get; set; }
     [Required]
     public OperationType? Type { get; set; }
+    [Required]
+    public string CurrencyCode { get; set; } = "PLN";
     public string Description { get; set; } = string.Empty;
     [Required]
     public int? WalletId { get; set; }
