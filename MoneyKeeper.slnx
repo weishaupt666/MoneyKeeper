@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="MoneyKeeper.Tests/MoneyKeeper.Tests.csproj" />
+  <Project Path="MoneyKeeper.Tests/MoneyKeeper.Tests.csproj" Id="01b12790-9e71-45b5-9ab6-a014ef9f3d97" />
   <Project Path="MoneyKeeper/MoneyKeeper.csproj" />
 </Solution>

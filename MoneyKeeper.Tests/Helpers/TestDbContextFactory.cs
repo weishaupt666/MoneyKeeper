@@ -6,14 +6,15 @@ using System.Text;
 
 namespace MoneyKeeper.Tests.Helpers;
 
-public class DbContextHelper
+public static class TestDbContextFactory
 {
-    public static ApplicationDbContext GetInMemoryDbContext()
+    public static ApplicationDbContext Create()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        return new ApplicationDbContext(options);
+        var context = new ApplicationDbContext(options);
+        return context;
     }
 }

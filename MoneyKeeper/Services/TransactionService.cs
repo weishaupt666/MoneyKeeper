@@ -166,6 +166,11 @@ public class TransactionService : ITransactionService
 
         if (transaction.Type == OperationType.Income)
         {
+            if (wallet!.Balance < transaction.Amount)
+            {
+                throw new InvalidOperationException("Cannot rollback income: insufficient funds");
+            }
+
             wallet!.Balance -= transaction.Amount;
         }
         else
@@ -173,36 +178,37 @@ public class TransactionService : ITransactionService
             wallet!.Balance += transaction.Amount;
         }
 
-        decimal finalAmount = request.Amount;
-        string newDescription = request.Description ?? string.Empty;
-
+        decimal finalAmount = request.Amount ?? transaction.Amount;
         string currency = string.IsNullOrEmpty(request.CurrencyCode) ? "PLN" : request.CurrencyCode.ToUpper();
 
         if (currency != "PLN")
         {
             decimal rate = await _currencyService.GetExchangeRateAsync(currency);
             finalAmount *= rate;
-
-            newDescription += $"Updated: {request.Amount} {currency} at rate {rate})";
         }
 
-        if (transaction.Type == OperationType.Income)
+        if (request.Type.HasValue)
         {
-            wallet.Balance += finalAmount;
-        }
-        else
-        {
-            if (wallet.Balance < finalAmount)
-            {
-                throw new InvalidOperationException("Insufficient funds for update amount.");
-            }
-            wallet.Balance -= finalAmount;
+            transaction.Type = request.Type.Value;
         }
 
         transaction.Amount = finalAmount;
-        transaction.Description = newDescription;
+        transaction.Description = request.Description ?? transaction.Description;
         transaction.Date = request.Date;
         transaction.CategoryId = request.CategoryId;
+
+        if (transaction.Type == OperationType.Income)
+        {
+            wallet.Balance += transaction.Amount;
+        }
+        else
+        {
+            if (wallet.Balance < transaction.Amount)
+            {
+                throw new InvalidOperationException("Insufficient funds for update amount.");
+            }
+            wallet.Balance -= transaction.Amount;
+        }
 
         await _context.SaveChangesAsync();
     }
