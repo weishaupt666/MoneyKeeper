@@ -8,6 +8,6 @@ public class CreateWalletRequest
     public string Name { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     [Required]
-    [MaxLength(3)]
+    [StringLength(3, MinimumLength = 3, ErrorMessage = "Currency code must be 3 characters (e.g. USD).")]
     public string Currency { get; set; } = string.Empty;
 }

@@ -22,7 +22,7 @@ public class WalletService : IWalletService
         {
             Name = request.Name,
             Balance = request.Balance,
-            Currency = request.Currency,
+            CurrencyCode = request.Currency,
             UserId = userId
         };
         _context.Wallets.Add(wallet);

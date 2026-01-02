@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
 using MoneyKeeper.Enums;
+using MoneyKeeper.Extensions;
 using MoneyKeeper.Integrations.Nbp.Interfaces;
 using MoneyKeeper.Models;
 
@@ -19,7 +20,7 @@ public class TransactionService : ITransactionService
         _currencyService = currencyService;
     }
 
-    public async Task<List<Transaction>> GetTransactionsAsync(GetTransactionsFilter filter, int userId)
+    public async Task<List<TransactionResponse>> GetTransactionsAsync(GetTransactionsFilter filter, int userId)
     {
         if (filter.FromDate.HasValue && filter.ToDate.HasValue && filter.FromDate > filter.ToDate)
         {
@@ -57,58 +58,57 @@ public class TransactionService : ITransactionService
 
         query = query.OrderByDescending(t => t.Date);
 
-        return await query.ToListAsync();
+        var transactions = await query.ToListAsync();
+
+        return transactions
+            .Select(t => t.ToResponse())
+            .ToList();
     }
 
     public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request, int userId)
     {
         var wallet = await _context.Wallets.FindAsync(request.WalletId);
-        if (wallet == null)
-        {
-            throw new KeyNotFoundException("Wallet not found");
-        }
-
-        if (wallet.UserId != userId)
-        {
-            throw new UnauthorizedAccessException("You do not own this wallet");
-        }
+        if (wallet == null) throw new KeyNotFoundException("Wallet not found");
+        if (wallet.UserId != userId) throw new UnauthorizedAccessException("Access denied");
 
         var category = await _context.Categories.FindAsync(request.CategoryId);
-        if (category == null)
+        if (category == null) throw new KeyNotFoundException("Category not found");
+
+        decimal transactionAmount = request.Amount!.Value;
+        decimal walletAmount = transactionAmount;
+        decimal exchangeRate = 1.0m;
+
+        if (!string.Equals(request.CurrencyCode, wallet.CurrencyCode, StringComparison.OrdinalIgnoreCase))
         {
-            throw new KeyNotFoundException("Category not found");
+            walletAmount = await _currencyService.ConvertAsync(
+                fromCurrency: request.CurrencyCode,
+                toCurrency: wallet.CurrencyCode,
+                amount: transactionAmount
+            );
+
+            exchangeRate = walletAmount / transactionAmount;
         }
 
-        decimal amount = request.Amount!.Value;
-
-        if (request.CurrencyCode.ToUpper() != "PLN")
-        {
-            decimal rate = await _currencyService.GetExchangeRateAsync(request.CurrencyCode);
-            amount *= rate;
-            request.Description += $"(Converted from {request.Amount} {request.CurrencyCode} at rate {rate})";
-        }
         OperationType type = request.Type!.Value;
-
         if (type == OperationType.Income)
         {
-            wallet.Balance += amount;
+            wallet.Deposit(walletAmount);
         }
         else
         {
-            if (wallet.Balance < amount)
-            {
-                throw new InvalidOperationException("Insufficient funds");
-            }
-            wallet.Balance -= amount;
+            wallet.Withdraw(walletAmount);
         }
 
         var transaction = new Transaction
         {
-            Amount = amount,
+            OriginalAmount = transactionAmount,
+            OriginalCurrencyCode = request.CurrencyCode,
+            Amount = walletAmount,
+            ExchangeRate = exchangeRate,
             Type = type,
             WalletId = wallet.Id,
-            Category = category,
-            Description = request.Description ?? string.Empty,
+            CategoryId = category.Id,
+            Description = request.Description,
             Date = request.Date == DateTime.MinValue ? DateTime.UtcNow : request.Date
         };
 

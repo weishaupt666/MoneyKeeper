@@ -28,5 +28,18 @@ public class ApplicationDbContext : DbContext
             new Category { Id = 5, Name = "Health", UserId = null },
             new Category { Id = 6, Name = "Salary", UserId = null }
         );
+
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.Property(t => t.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(t => t.OriginalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(t => t.ExchangeRate).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<Wallet>(entity =>
+        {
+            entity.Property(w => w.Balance).HasColumnType("decimal(18, 2)");
+            entity.Property(w => w.CurrencyCode).HasDefaultValue("PLN").IsRequired();
+        });
     }
 }

@@ -18,6 +18,9 @@ public class NbpCurrencyService : ICurrencyService
 
     public async Task<decimal> GetExchangeRateAsync(string currencyCode)
     {
+        if (currencyCode.Equals("PLN", StringComparison.OrdinalIgnoreCase))
+            return 1.0m;
+
         var url = $"http://api.nbp.pl/api/exchangerates/rates/a/{currencyCode.ToLower()}/?format=json";
 
         try
@@ -40,5 +43,36 @@ public class NbpCurrencyService : ICurrencyService
 
             throw new InvalidOperationException($"Failed to fetch rates for {currencyCode}", ex);
         }
+    }
+
+    public async Task<decimal> ConvertAsync(string fromCurrency, string toCurrency, decimal amount)
+    {
+        if (string.Equals(fromCurrency, toCurrency, StringComparison.OrdinalIgnoreCase))
+        {
+            return amount;
+        }
+
+        if (string.Equals(toCurrency, "PLN", StringComparison.OrdinalIgnoreCase))
+        {
+            var rate = await GetExchangeRateAsync(fromCurrency);
+            return amount * rate;
+        }
+
+        if (string.Equals(fromCurrency, "PLN", StringComparison.OrdinalIgnoreCase))
+        {
+            var rate = await GetExchangeRateAsync(toCurrency);
+            return amount / rate;
+        }
+
+        var fromRateTask = GetExchangeRateAsync(fromCurrency);
+        var toRateTask = GetExchangeRateAsync(toCurrency);
+
+
+        await Task.WhenAll(fromRateTask, toRateTask);
+
+        var fromRate = fromRateTask.Result;
+        var toRate = toRateTask.Result;
+
+        return (amount * fromRate) / toRate;
     }
 }
