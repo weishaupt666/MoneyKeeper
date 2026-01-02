@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyKeeper.Data;
 using MoneyKeeper.DTO;
+using MoneyKeeper.Extensions;
 using MoneyKeeper.Models;
 using MoneyKeeper.Services;
 
@@ -19,16 +20,18 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
+    public async Task<ActionResult<CategoryResponse>> CreateCategory([FromBody] CreateCategoryRequest request)
     {
-        var category = await _categoryService.Create(request);
+        var userId = User.GetUserId();
+        var category = await _categoryService.CreateCategoryAsync(request, userId);
         return Ok(category);
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<List<CategoryResponse>>> GetAll()
     {
-        var categories = await _categoryService.GetAll();
+        var userId = User.GetUserId();
+        var categories = await _categoryService.GetCategoriesAsync(userId);
         return Ok(categories);
     }
 }

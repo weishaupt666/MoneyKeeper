@@ -34,9 +34,46 @@ namespace MoneyKeeper.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Products"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Housing"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Transport"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Entertainment"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Health"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Name = "Salary"
+                        });
                 });
 
             modelBuilder.Entity("MoneyKeeper.Models.Transaction", b =>
@@ -122,6 +159,15 @@ namespace MoneyKeeper.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("MoneyKeeper.Models.Category", b =>
+                {
+                    b.HasOne("MoneyKeeper.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MoneyKeeper.Models.Transaction", b =>

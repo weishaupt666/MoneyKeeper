@@ -14,24 +14,47 @@ public class CategoryService : ICategoryService
         _context = context;
     }
 
-    public async Task<Category> Create(CreateCategoryRequest request)
+    public async Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, int userId)
     {
+        bool exists = await _context.Categories
+            .AnyAsync(c => c.Name == request.Name &&
+            (c.UserId == userId || c.UserId == null));
+
+        if (exists)
+        {
+            throw new ArgumentException($"Category '{request.Name}' already exists.");
+        }
+
         var category = new Category
         {
-            Name = request.Name
+            Name = request.Name,
+            UserId = userId
         };
 
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
 
-        return category;
+        return new CategoryResponse
+        {
+            Id = category.Id,
+            Name = category.Name,
+            IsSystem = false
+        };
     }
 
-    public async Task<List<Category>> GetAll()
+    public async Task<List<CategoryResponse>> GetCategoriesAsync(int userId)
     {
         var categories = await _context.Categories
             .AsNoTracking()
+            .Where(c => c.UserId == userId || c.UserId == null)
+            .Select(c => new CategoryResponse
+            {
+                Id = c.Id,
+                Name = c.Name,
+                IsSystem = c.UserId == null
+            })
             .ToListAsync();
+
         return categories;
     }
 }

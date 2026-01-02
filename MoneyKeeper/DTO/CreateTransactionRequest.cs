@@ -7,7 +7,9 @@ namespace MoneyKeeper.DTO;
 public class CreateTransactionRequest
 {
     [Required]
-    [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ErrorMessage = "Amount must be greater than zero.")]
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335",
+        ErrorMessage = "Amount must be greater than zero.",
+        ParseLimitsInInvariantCulture = true)]
     public decimal? Amount { get; set; }
     [Required]
     public OperationType? Type { get; set; }

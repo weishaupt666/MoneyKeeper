@@ -15,12 +15,10 @@ namespace MoneyKeeper.Controllers;
 public class TransactionsController : ControllerBase
 {
     private readonly ITransactionService _transactionService;
-    private readonly ICurrencyService _currencyService;
 
     public TransactionsController(ITransactionService transactionService, ICurrencyService currencyService)
     {
         _transactionService = transactionService;
-        _currencyService = currencyService;
     }
 
 

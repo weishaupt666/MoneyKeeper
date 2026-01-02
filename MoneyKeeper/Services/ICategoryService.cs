@@ -5,6 +5,6 @@ namespace MoneyKeeper.Services;
 
 public interface ICategoryService
 {
-    Task<Category> Create(CreateCategoryRequest request);
-    Task<List<Category>> GetAll();
+    Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request, int userId);
+    Task<List<CategoryResponse>> GetCategoriesAsync(int userId);
 }
