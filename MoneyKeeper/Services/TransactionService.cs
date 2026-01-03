@@ -65,7 +65,7 @@ public class TransactionService : ITransactionService
             .ToList();
     }
 
-    public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request, int userId)
+    public async Task<TransactionResponse> CreateTransactionAsync(CreateTransactionRequest request, int userId)
     {
         var wallet = await _context.Wallets.FindAsync(request.WalletId);
         if (wallet == null) throw new KeyNotFoundException("Wallet not found");
@@ -115,7 +115,7 @@ public class TransactionService : ITransactionService
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
 
-        return transaction;
+        return transaction.ToResponse();
     }
 
     public async Task DeleteTransactionAsync(int id, int userId)
@@ -126,91 +126,86 @@ public class TransactionService : ITransactionService
                 .Where(w => w.Wallet!.UserId == userId)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
-        if (transaction == null)
-        {
-            throw new KeyNotFoundException("Transaction not found");
-        }
+        if (transaction == null) throw new KeyNotFoundException("Transaction not found.");
 
-        var wallet = transaction.Wallet;
-
-        if (transaction.Type == OperationType.Income)
+        if (transaction.Wallet != null)
         {
-            if (wallet!.Balance < transaction.Amount)
+            if (transaction.Type == OperationType.Income)
             {
-                throw new InvalidOperationException("Cannot delete income: insufficient funds to rollback");
+                transaction.Wallet.Withdraw(transaction.Amount);
             }
-            wallet.Balance -= transaction.Amount;
-        }
-        else
-        {
-            wallet!.Balance += transaction.Amount;
+            else
+            {
+                transaction.Wallet.Deposit(transaction.Amount);
+            }
         }
 
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateTransactionAsync(int id, UpdateTransactionRequest request, int userId)
+    public async Task<TransactionResponse> UpdateTransactionAsync(int id, UpdateTransactionRequest request, int userId)
     {
         var transaction = await _context.Transactions
                 .Include(t => t.Wallet)
                 .Where(t => t.Wallet!.UserId == userId)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
-        if (transaction == null)
-        {
-            throw new KeyNotFoundException("Transaction not found");
-        }
+        if (transaction == null) throw new KeyNotFoundException("Transaction not found");
 
         var wallet = transaction.Wallet;
 
         if (transaction.Type == OperationType.Income)
         {
-            if (wallet!.Balance < transaction.Amount)
-            {
-                throw new InvalidOperationException("Cannot rollback income: insufficient funds");
-            }
-
-            wallet!.Balance -= transaction.Amount;
+            wallet!.Withdraw(transaction.Amount);
         }
         else
         {
-            wallet!.Balance += transaction.Amount;
+            wallet!.Deposit(transaction.Amount);
         }
 
-        decimal finalAmount = request.Amount ?? transaction.Amount;
-        string currency = string.IsNullOrEmpty(request.CurrencyCode) ? "PLN" : request.CurrencyCode.ToUpper();
-
-        if (currency != "PLN")
+        if (request.CategoryId.HasValue)
         {
-            decimal rate = await _currencyService.GetExchangeRateAsync(currency);
-            finalAmount *= rate;
+            transaction.CategoryId = request.CategoryId.Value;
         }
 
-        if (request.Type.HasValue)
+        if (request.Date.HasValue) transaction.Date = request.Date.Value;
+        if (!string.IsNullOrEmpty(request.Description)) transaction.Description = request.Description;
+        if (request.Type.HasValue) transaction.Type = request.Type.Value;
+
+        bool amountChanged = request.Amount.HasValue;
+        bool currencyChanged = !string.IsNullOrEmpty(request.CurrencyCode)
+            && request.CurrencyCode != transaction.OriginalCurrencyCode;
+
+        if (amountChanged || currencyChanged)
         {
-            transaction.Type = request.Type.Value;
-        }
+            decimal newOriginalAmount = request.Amount ?? transaction.OriginalAmount;
+            string newCurrencyCode = request.CurrencyCode ?? transaction.OriginalCurrencyCode;
 
-        transaction.Amount = finalAmount;
-        transaction.Description = request.Description ?? transaction.Description;
-        transaction.Date = request.Date;
-        transaction.CategoryId = request.CategoryId;
+            decimal newWalletAmount = await _currencyService.ConvertAsync(
+                newCurrencyCode,
+                wallet.CurrencyCode,
+                newOriginalAmount
+            );
+
+            transaction.OriginalAmount = newOriginalAmount;
+            transaction.OriginalCurrencyCode = newCurrencyCode;
+            transaction.Amount = newWalletAmount;
+
+            transaction.ExchangeRate = (newOriginalAmount == 0) ? 0 : (newWalletAmount / newOriginalAmount);
+        }
 
         if (transaction.Type == OperationType.Income)
         {
-            wallet.Balance += transaction.Amount;
+            wallet.Deposit(transaction.Amount);
         }
         else
         {
-            if (wallet.Balance < transaction.Amount)
-            {
-                throw new InvalidOperationException("Insufficient funds for update amount.");
-            }
-            wallet.Balance -= transaction.Amount;
+            wallet.Withdraw(transaction.Amount);
         }
 
         await _context.SaveChangesAsync();
+        return transaction.ToResponse();
     }
 
     public async Task<List<CategoryStatistics>> GetExpensesByCategoryAsync(GetTransactionsFilter filter, int userId)

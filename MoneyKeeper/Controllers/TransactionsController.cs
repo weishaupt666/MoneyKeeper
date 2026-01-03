@@ -16,7 +16,7 @@ public class TransactionsController : ControllerBase
 {
     private readonly ITransactionService _transactionService;
 
-    public TransactionsController(ITransactionService transactionService, ICurrencyService currencyService)
+    public TransactionsController(ITransactionService transactionService)
     {
         _transactionService = transactionService;
     }
@@ -50,8 +50,8 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTransactionRequest request)
     {
         var userId = User.GetUserId();
-        await _transactionService.UpdateTransactionAsync(id, request, userId);
-        return Ok(new { Message = "Transaction updated" });
+        var transactionResponse = await _transactionService.UpdateTransactionAsync(id, request, userId);
+        return Ok(transactionResponse);
     }
 
     [HttpGet("stats/categories")]
