@@ -14,7 +14,7 @@ public static class TransactionMappingExtensions
             Amount = t.Amount,
             CurrencyCode = t.Wallet?.CurrencyCode ?? "PLN",
             OriginalAmount = t.OriginalAmount,
-            OriginalCurrnecyCode = t.OriginalCurrencyCode,
+            OriginalCurrencyCode = t.OriginalCurrencyCode,
             ExchangeRate = t.ExchangeRate,
             Description = t.Description,
             Date = t.Date,
