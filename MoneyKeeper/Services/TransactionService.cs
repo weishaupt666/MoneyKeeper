@@ -229,12 +229,15 @@ public class TransactionService : ITransactionService
         }
 
         var stats = await query
-            .GroupBy(t => t.Category!.Name)
+            .GroupBy(t => new { CategoryName = t.Category!.Name, Currency = t.Wallet!.CurrencyCode })
             .Select(g => new CategoryStatistics
             {
-                CategoryName = g.Key,
+                CategoryName = g.Key.CategoryName,
+                CurrencyCode = g.Key.Currency,
                 TotalAmount = g.Sum(t => t.Amount)
             })
+            .OrderBy(x => x.CurrencyCode)
+            .ThenByDescending(x => x.TotalAmount)
             .ToListAsync();
 
         return stats;
@@ -263,19 +266,44 @@ public class TransactionService : ITransactionService
             query = query.Where(t => t.WalletId == filter.WalletId.Value);
         }
 
-        var totalIncome = await query
-            .Where(t => t.Type == OperationType.Income)
-            .SumAsync(t => t.Amount);
+        var rawStats = await query
+            .GroupBy(t => new { t.Wallet!.CurrencyCode, t.Type })
+            .Select(g => new
+            {
+                Currency = g.Key.CurrencyCode,
+                Type = g.Key.Type,
+                Total = g.Sum(t => t.Amount)
+            })
+            .ToListAsync();
 
-        var totalExpense = await query
-            .Where(t => t.Type == OperationType.Expense)
-            .SumAsync(t => t.Amount);
+        decimal totalIncomeInPln = 0;
+        decimal totalExpenseInPln = 0;
+
+        string targetCurrency = "PLN";
+
+        foreach (var stat in rawStats)
+        {
+            decimal convertedAmount = await _currencyService.ConvertAsync(
+                fromCurrency: stat.Currency,
+                toCurrency: targetCurrency,
+                amount: stat.Total
+            );
+
+            if (stat.Type == OperationType.Income)
+            {
+                totalIncomeInPln += convertedAmount;
+            }
+            else
+            {
+                totalExpenseInPln += convertedAmount;
+            }
+        }
 
         return new DashboardStatistics
         {
-            TotalIncome = totalIncome,
-            TotalExpense = totalExpense,
-            Balance = totalIncome - totalExpense
+            TotalIncome = totalIncomeInPln,
+            TotalExpense = totalExpenseInPln,
+            Balance = totalIncomeInPln - totalExpenseInPln
         };
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace MoneyKeeper.Models;
+﻿namespace MoneyKeeper.DTO;
 
 public class DashboardStatistics
 {
