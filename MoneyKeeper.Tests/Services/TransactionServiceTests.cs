@@ -17,9 +17,9 @@ public class TransactionServiceTests
 {
     public static IEnumerable<object[]> GetTransactionTestData()
     {
-        yield return new object[] { 100m, "USD", 4.9m, 490m };
-        yield return new object[] { 50m, "EUR", 4.5m, 225m };
-        yield return new object[] { 10m, "USD", 3.82m, 38.2m };
+        yield return new object[] { 100m, "USD", 490m };
+        yield return new object[] { 50m, "EUR", 225m };
+        yield return new object[] { 10m, "USD", 38.2m };
     }
 
     [Theory]
@@ -27,8 +27,7 @@ public class TransactionServiceTests
     public async Task CreateTransaction_ShouldConvertCurrency_WhenCurrencyIsNotPLN(
         decimal inputAmount,
         string currency,
-        decimal rate,
-        decimal expectedAmount)
+        decimal expectedAmountInPln)
     {
         using var context = TestDbContextFactory.Create();
 
@@ -44,8 +43,8 @@ public class TransactionServiceTests
         var mockCurrencyService = new Mock<ICurrencyService>();
 
         mockCurrencyService
-            .Setup(service => service.GetExchangeRateAsync(currency))
-            .ReturnsAsync(rate);
+            .Setup(service => service.ConvertAsync(currency, "PLN", inputAmount))
+            .ReturnsAsync(expectedAmountInPln);
 
         var transactionService = new TransactionService(context, mockCurrencyService.Object);
 
@@ -62,8 +61,8 @@ public class TransactionServiceTests
 
 
         var result = await transactionService.CreateTransactionAsync(request, userId: 1);
-        Assert.Equal(expectedAmount, result.Amount);
-        mockCurrencyService.Verify(s => s.GetExchangeRateAsync(currency), Times.Once);
+        Assert.Equal(inputAmount, result.OriginalAmount);
+        Assert.Equal(currency, result.OriginalCurrencyCode);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class TransactionServiceTests
         using var context = TestDbContextFactory.Create();
 
         var user = new User { Id = 1, Username = "TestUser", PasswordHash = "hash" };
-        var wallet = new Wallet { Id = 1, UserId = 1, Name = "Poor Wallet", Balance = 10m };
+        var wallet = new Wallet { Id = 1, UserId = 1, Name = "Poor Wallet", Balance = 10m, CurrencyCode = "PLN" };
         var category = new Category { Id = 1, Name = "Food" };
 
         context.Users.Add(user);
@@ -81,6 +80,11 @@ public class TransactionServiceTests
         await context.SaveChangesAsync();
 
         var mockCurrencyService = new Mock<ICurrencyService>();
+
+        mockCurrencyService
+            .Setup(s => s.ConvertAsync("PLN", "PLN", 100m))
+            .ReturnsAsync(100m);
+
         var transactionService = new TransactionService(context, mockCurrencyService.Object);
 
         var request = new CreateTransactionRequest
@@ -107,7 +111,7 @@ public class TransactionServiceTests
 
         var userId = 10;
         var user = new User { Id = userId, Username = "FilterUser", PasswordHash = "hash" };
-        var wallet = new Wallet { Id = 5, UserId = userId, Name = "Test Wallet", Balance = 1000 };
+        var wallet = new Wallet { Id = 5, UserId = userId, Name = "Test Wallet", Balance = 1000, CurrencyCode = "PLN" };
         var category = new Category { Id = 1, Name = "General" };
 
         context.Users.Add(user);
@@ -121,6 +125,8 @@ public class TransactionServiceTests
             WalletId = wallet.Id,
             CategoryId = category.Id,
             Amount = 100,
+            OriginalAmount = 100,
+            OriginalCurrencyCode = "PLN",
             Date = dateNow.AddMonths(-1),
             Type = OperationType.Expense
         };
@@ -130,6 +136,8 @@ public class TransactionServiceTests
             WalletId = wallet.Id,
             CategoryId = category.Id,
             Amount = 50,
+            OriginalAmount = 50,
+            OriginalCurrencyCode = "PLN",
             Date = dateNow,
             Type = OperationType.Expense
         };
@@ -139,6 +147,8 @@ public class TransactionServiceTests
             WalletId = wallet.Id,
             CategoryId = category.Id,
             Amount = 200,
+            OriginalAmount = 200,
+            OriginalCurrencyCode = "PLN",
             Date = dateNow.AddMonths(1),
             Type = OperationType.Expense
         };
@@ -169,22 +179,39 @@ public class TransactionServiceTests
         var user = new User { Id = userId, Username = "FilterUser", PasswordHash = "hash" };
         var wallet = new Wallet { Id = 5, UserId = userId, Name = "Test Wallet", Balance = 900 };
         var category = new Category { Id = 1, Name = "General" };
-        var transaction = new Transaction { Id = 1, Amount = 100, Type = OperationType.Expense, WalletId = 5, CategoryId = 1, Date = DateTime.UtcNow };
+        var transaction = new Transaction
+        {
+            Id = 1,
+            Amount = 100,
+            OriginalAmount = 100,
+            OriginalCurrencyCode = "PLN",
+            Type = OperationType.Expense,
+            WalletId = 5,
+            CategoryId = 1,
+            Date = DateTime.UtcNow,
+            Wallet = wallet
+        };
 
         context.Users.Add(user);
         context.Wallets.Add(wallet);
         context.Categories.Add(category);
         context.Transactions.Add(transaction);
-
         await context.SaveChangesAsync();
 
-        var service = new TransactionService(context, Mock.Of<ICurrencyService>());
+
+        var mockCurrencyService = new Mock<ICurrencyService>();
+        mockCurrencyService
+            .Setup(s => s.ConvertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>()))
+            .ReturnsAsync((string from, string to, decimal amount) => amount);
+
+        var service = new TransactionService(context, mockCurrencyService.Object);
 
         var request = new UpdateTransactionRequest
         {
             Type = OperationType.Income,
             Amount = 100,
-            CurrencyCode = "PLN"
+            CurrencyCode = "PLN",
+            CategoryId = 1
         };
 
         await service.UpdateTransactionAsync(1, request, userId);
