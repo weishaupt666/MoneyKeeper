@@ -6,6 +6,7 @@ using MoneyKeeper.Data;
 using MoneyKeeper.Services;
 using MoneyKeeper.Integrations.Nbp.Interfaces;
 using MoneyKeeper.Integrations.Nbp;
+using MoneyKeeper.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 var key = builder.Configuration["JwtSettings:Key"];
@@ -36,6 +37,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+app.ApplyMigrations();
 app.UseMiddleware<MoneyKeeper.Middleware.ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.MapControllers();

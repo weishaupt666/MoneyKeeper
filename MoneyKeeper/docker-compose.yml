@@ -1,0 +1,26 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: moneykeeper_db
+    user: root
+    environment:
+    - ACCEPT_EULA=Y
+    - SA_PASSWORD=!PupaDocker3141592
+    ports:
+    - "1433:1433"
+    volumes:
+    - db_data:/var/opt/mssql/data
+
+  api:
+    build: .
+    container_name: moneykeeper_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=MoneyKeeperDb;User Id=sa;Password=!PupaDocker3141592;TrustServerCertificate=True;
+    restart: always
+
+volumes:
+  db_data:
