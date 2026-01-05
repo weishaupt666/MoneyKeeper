@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Login from './components/Login'
 import Register from './components/Register'
+import { getWallets } from './services/walletService';
 import './App.css'
 
 function App() {
@@ -18,32 +19,22 @@ function App() {
   };
 
   useEffect(() => {
-    if (!token) return;
-
-    setIsLoading(true);
-    
-    fetch('/api/wallets', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(res => {
-        if (res.status === 401) {
-            handleLogout();
-            throw new Error('Session expired');
-        }
-        return res.json();
-    })
-    .then(data => {
+    if (token) {
+      getWallets(token)
+      .then(data => {
         setWallets(data);
         setIsLoading(false);
-    })
-    .catch(err => {
-        setError(err.message);
+      })
+      .catch(err => {
+        console.error(err);
+        if (err.message === 'Unauthorized') {
+          handleLogout();
+        } else {
+          setError(err.message);
+        }
         setIsLoading(false);
-    });
+      });
+    }
   }, [token]);
 
   if (!token) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { registerUser } from '../services/authService';
 
-const Register = ({ onRegisterSuccess, onBackToLogin }) => {
+function Register({ onRegisterSuccess, onBackToLogin }) {
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -9,7 +10,7 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
     const [successMsg, setSuccessMsg] = useState('');
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value});
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
@@ -17,30 +18,21 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
         setError('');
 
         try {
-            const response = await fetch('api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
+            await registerUser(formData.username, formData.password);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Registration failed');
-            }
-
-            setSuccessMsg('Registration successful! You can now log in.');
-
+            setSuccessMsg('Account created successfully! You can now login.');
             setTimeout(() => {
-                onRegisterSuccess();}, 2000);
+                onRegisterSuccess();
+            }, 2000);
         } catch (err) {
             setError(err.message);
         }
     };
 
-return (
+    return (
         <div style={{ maxWidth: '300px', margin: 'auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
             <h2>Create Account</h2>
-            
+
             {successMsg ? (
                 <p style={{ color: 'green' }}>{successMsg}</p>
             ) : (
@@ -53,11 +45,11 @@ return (
                         <label>Password:</label><br />
                         <input name="password" type="password" value={formData.password} onChange={handleChange} required />
                     </div>
-                    
+
                     {error && <p style={{ color: 'red' }}>{error}</p>}
-                    
+
                     <button type="submit" style={{ width: '100%', marginBottom: '10px' }}>Sign Up</button>
-                    
+
                     <button type="button" onClick={onBackToLogin} style={{ width: '100%', background: '#ccc', color: 'black' }}>
                         Back to Login
                     </button>
@@ -65,6 +57,6 @@ return (
             )}
         </div>
     );
-};
+}
 
 export default Register;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { loginUser } from '../services/authService';
 
 const Login = ({ onLoginSuccess, onRegisterClick }) => {
     const [username, setUsername] = useState('');
@@ -10,31 +11,12 @@ const Login = ({ onLoginSuccess, onRegisterClick }) => {
         setError('');
 
         try {
-            const response = await fetch('api/auth/login', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    username: username, 
-                    password: password 
-                })
-            });
+            const token = await loginUser(username, password);
 
-            if (!response.ok) {
-                throw new Error('Invalid credentials');
-            }
-
-            const data = await response.json();
-
-            const token = data.accessToken || data.token; 
-
-            if (token) {
-                localStorage.setItem('jwt_token', token);
-                onLoginSuccess(token);
-            } else {
-                throw new Error('No token found in response');
-            }
-
-        } catch (err) {
+            localStorage.setItem('jwt_token', token);
+            onLoginSuccess(token);
+        }
+        catch (err) {
             setError(err.message);
         }
     };
