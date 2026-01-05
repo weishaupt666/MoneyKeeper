@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import Login from './components/Login'
 import Register from './components/Register'
-import { getWallets } from './services/walletService';
+import CreateWallet from './components/CreateWallet'
+import { getWallets } from './services/walletService'
 import './App.css'
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   
   const [token, setToken] = useState(localStorage.getItem('jwt_token'));
 
@@ -18,25 +20,35 @@ function App() {
     setWallets([]);
   };
 
+  const fetchWalletsData = () => {
+    if (!token) return;
+
+    setIsLoading(true);
+    getWallets(token)
+    .then(data => {
+      setWallets(data);
+      setIsLoading(false);
+    })
+    .catch(err => {
+      console.error(err);
+      if (err.message === 'Unauthorized') {
+        handleLogout();
+      } else {
+        setError(err.message);
+      }
+      setIsLoading(false);
+    });
+  };
+
   useEffect(() => {
-    if (token) {
-      getWallets(token)
-      .then(data => {
-        setWallets(data);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        if (err.message === 'Unauthorized') {
-          handleLogout();
-        } else {
-          setError(err.message);
-        }
-        setIsLoading(false);
-      });
-    }
+    fetchWalletsData();
   }, [token]);
 
+  const handleWalletCreated = () => {
+    setIsCreating(false);
+    fetchWalletsData();
+  };
+    
   if (!token) {
     if (isRegistering) {
       return (
@@ -54,24 +66,57 @@ function App() {
     );
   }
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+return (
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h1>MoneyKeeper 💰</h1>
-          <button onClick={handleLogout} style={{ background: '#ff4d4f' }}>Logout</button>
+          <button onClick={handleLogout} style={{ background: '#ff4d4f', color: 'white' }}>Logout</button>
       </div>
 
+      {isCreating && (
+        <CreateWallet 
+            token={token}
+            onSuccess={handleWalletCreated}
+            onCancel={() => setIsCreating(false)}
+        />
+      )}
+
       {isLoading && <p>Loading data...</p>}
+      {error && <p style={{color: 'red'}}>{error}</p>}
       
-      {!isLoading && wallets.length === 0 && (
+      {!isLoading && wallets.length === 0 && !isCreating && (
           <p>No wallets found. Create your first one!</p>
       )}
 
-      {wallets.map(wallet => (
-        <li key={wallet.id}>
-           {wallet.name}: {wallet.balance} {wallet.currencyCode}
-        </li>
-      ))}
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {wallets.map(wallet => (
+          <li key={wallet.id} style={{ 
+              background: '#f5f5f5',
+              color: '#333333',
+              margin: '10px 0', 
+              padding: '15px', 
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+          }}>
+             <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{wallet.name}</span>
+             <span style={{ fontWeight: 'bold', color: '#008000' }}>
+                {wallet.balance.toFixed(2)} {wallet.currencyCode}
+             </span>
+          </li>
+        ))}
+      </ul>
+
+          {!isCreating && (
+          <button 
+            onClick={() => setIsCreating(true)}
+            style={{ marginBottom: '20px' }}
+          >
+            + Add New Wallet
+          </button>
+      )}
     </div>
   )
 }
