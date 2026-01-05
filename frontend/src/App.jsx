@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import Login from './components/Login'
+import Register from './components/Register'
 import './App.css'
 
 function App() {
   const [wallets, setWallets] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   
   const [token, setToken] = useState(localStorage.getItem('jwt_token'));
 
@@ -45,7 +47,20 @@ function App() {
   }, [token]);
 
   if (!token) {
-    return <Login onLoginSuccess={(newToken) => setToken(newToken)} />;
+    if (isRegistering) {
+      return (
+        <Register
+          onRegisterSuccess={() => setIsRegistering(false)}
+          onBackToLogin={() => setIsRegistering(false)}
+        />
+      );
+    }
+    return (
+      <Login 
+        onLoginSuccess={(newToken) => setToken(newToken)}
+        onRegisterClick={() => setIsRegistering(true)}
+      />
+    );
   }
 
   return (
