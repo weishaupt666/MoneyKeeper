@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { createWallet } from '../services/walletService';
 
+
+{/*Wallet creation logic*/}
 const CreateWallet = ({ token, onSuccess, onCancel }) => {
     const [name, setName] = useState('');
     const [currency, setCurrency] = useState('USD');
